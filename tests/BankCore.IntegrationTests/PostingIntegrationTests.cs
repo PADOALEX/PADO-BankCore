@@ -98,7 +98,7 @@ public sealed class PostingIntegrationTests(DatabaseFixture fixture)
             catch (BankingException ex) when (ex.Code == "insufficient_funds") { return false; }
         }
         var results = await Task.WhenAll(Attempt("concurrent-a-001"), Attempt("concurrent-b-001"));
-        Assert.Single(results.Where(x => x));
+        Assert.Single(results, x => x);
         await using var inspect = fixture.NewContext();
         Assert.Equal(20m, (await inspect.Accounts.AsNoTracking().SingleAsync(x => x.Id == from)).Balance);
         Assert.Equal(80m, (await inspect.Accounts.AsNoTracking().SingleAsync(x => x.Id == to)).Balance);
@@ -116,7 +116,7 @@ public sealed class PostingIntegrationTests(DatabaseFixture fixture)
         }
         var results = await Task.WhenAll(Attempt(), Attempt());
         Assert.Equal(results[0].OperationId, results[1].OperationId);
-        Assert.Single(results.Where(x => !x.Replayed));
+        Assert.Single(results, x => !x.Replayed);
         await using var inspect = fixture.NewContext();
         Assert.Equal(75m, (await inspect.Accounts.AsNoTracking().SingleAsync(x => x.Id == from)).Balance);
         Assert.Equal(1, await inspect.Operations.CountAsync(x => x.IdempotencyKey == request.IdempotencyKey && x.InitiatorId == user));
