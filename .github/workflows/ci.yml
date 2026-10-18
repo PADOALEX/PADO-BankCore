@@ -35,3 +35,15 @@ jobs:
         run: dotnet test tests/BankCore.UnitTests/BankCore.UnitTests.csproj --configuration Release --no-build
       - name: PostgreSQL integration tests
         run: dotnet test tests/BankCore.IntegrationTests/BankCore.IntegrationTests.csproj --configuration Release --no-build
+      - name: API HTTP smoke tests
+        env:
+          ConnectionStrings__BankCore: Host=localhost;Port=5432;Database=bankcore_test;Username=bankcore;Password=ci_only_password
+          Jwt__SigningKey: CI_ONLY_KEY_FOR_HTTP_TESTS_LONGER_THAN_32_CHARACTERS
+        run: bash tests/api-smoke.sh
+      - name: Validate Docker Compose
+        env:
+          BANKCORE_DB_PASSWORD: ci_only_password
+          BANKCORE_JWT_KEY: CI_ONLY_KEY_FOR_HTTP_TESTS_LONGER_THAN_32_CHARACTERS
+        run: docker compose config -q
+      - name: Build Docker API image
+        run: docker build -f src/BankCore.Api/Dockerfile -t pado-bankcore:ci .
