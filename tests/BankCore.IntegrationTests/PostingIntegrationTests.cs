@@ -24,7 +24,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         var builder = new NpgsqlConnectionStringBuilder(_connectionString);
-        if (!builder.Database.Contains("bankcore_test", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(builder.Database) || !builder.Database.Contains("bankcore_test", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Refusing to reset a database that is not named '*bankcore_test*'.");
         await using var db = NewContext();
         await db.Database.EnsureDeletedAsync();
