@@ -31,16 +31,20 @@ jobs:
         run: dotnet restore PADO.BankCore.sln
       - name: Build (Release)
         run: dotnet build PADO.BankCore.sln --configuration Release --no-restore
-      - name: Diagnose EF migration snapshot (temporary)
+      - name: Generate clean EF migrations (diagnostic)
         env:
           ConnectionStrings__BankCore: Host=localhost;Port=5432;Database=bankcore_test;Username=bankcore;Password=ci_only_password
           Jwt__SigningKey: CI_ONLY_DIAGNOSTIC_KEY_AT_LEAST_32_CHARACTERS
         run: |
           dotnet tool install --global dotnet-ef --version 10.0.0
-          dotnet ef migrations add ModelDiffDiagnostic --project src/BankCore.Infrastructure --startup-project src/BankCore.Api --output-dir Migrations
-          echo '===== MODEL_DIFF_BEGIN ====='
-          cat src/BankCore.Infrastructure/Migrations/*ModelDiffDiagnostic.cs
-          echo '===== MODEL_DIFF_END ====='
+          rm -f src/BankCore.Infrastructure/Migrations/*.cs
+          dotnet ef migrations add InitialCreate --project src/BankCore.Infrastructure --startup-project src/BankCore.Api --output-dir Migrations
+          echo '===== INITIAL_MIGRATION_BEGIN ====='
+          cat src/BankCore.Infrastructure/Migrations/*_InitialCreate.cs
+          echo '===== INITIAL_MIGRATION_END ====='
+          echo '===== INITIAL_DESIGNER_BEGIN ====='
+          cat src/BankCore.Infrastructure/Migrations/*_InitialCreate.Designer.cs
+          echo '===== INITIAL_DESIGNER_END ====='
           echo '===== SNAPSHOT_BEGIN ====='
           cat src/BankCore.Infrastructure/Migrations/BankDbContextModelSnapshot.cs
           echo '===== SNAPSHOT_END ====='
