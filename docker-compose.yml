@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: bankcore
+      POSTGRES_USER: bankcore
+      POSTGRES_PASSWORD: ${BANKCORE_DB_PASSWORD:?Set BANKCORE_DB_PASSWORD in .env}
+    volumes:
+      - bankcore-postgres:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankcore -d bankcore"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build:
+      context: .
+      dockerfile: src/BankCore.Api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__BankCore: Host=postgres;Port=5432;Database=bankcore;Username=bankcore;Password=${BANKCORE_DB_PASSWORD:?Set BANKCORE_DB_PASSWORD in .env}
+      Jwt__SigningKey: ${BANKCORE_JWT_KEY:?Set BANKCORE_JWT_KEY in .env}
+      Database__AutoMigrate: "true"
+      Database__SeedDemoData: "false"
+      Demo__Password: ${BANKCORE_DEMO_PASSWORD:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+volumes:
+  bankcore-postgres:

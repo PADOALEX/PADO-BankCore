@@ -1,0 +1,37 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bankcore
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: bankcore_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U bankcore -d bankcore_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      BANKCORE_TEST_CONNECTION: Host=localhost;Port=5432;Database=bankcore_test;Username=bankcore;Password=ci_only_password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore PADO.BankCore.sln
+      - name: Build (Release)
+        run: dotnet build PADO.BankCore.sln --configuration Release --no-restore
+      - name: Unit tests
+        run: dotnet test tests/BankCore.UnitTests/BankCore.UnitTests.csproj --configuration Release --no-build
+      - name: PostgreSQL integration tests
+        run: dotnet test tests/BankCore.IntegrationTests/BankCore.IntegrationTests.csproj --configuration Release --no-build

@@ -1,0 +1,51 @@
+@base = http://localhost:8080
+@token = REPLACE_AFTER_LOGIN
+@sourceId = REPLACE_WITH_YOUR_ACCOUNT_ID
+@destinationId = REPLACE_WITH_OTHER_ACCOUNT_ID
+
+### Register Alice (example credentials only; choose your own)
+POST {{base}}/api/auth/register
+Content-Type: application/json
+
+{"username":"alice_sample","password":"EXAMPLE_PASSWORD_CHANGE_ME"}
+
+### Authenticate
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{"username":"alice_sample","password":"EXAMPLE_PASSWORD_CHANGE_ME"}
+
+### Open account
+POST {{base}}/api/accounts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"type":"Checking"}
+
+### List only your own accounts
+GET {{base}}/api/accounts
+Authorization: Bearer {{token}}
+
+### Simulator funding (NOT real money)
+POST {{base}}/api/accounts/{{sourceId}}/deposits
+Authorization: Bearer {{token}}
+Idempotency-Key: alice-fund-0001
+Content-Type: application/json
+
+{"amount":100.00,"currency":"USD"}
+
+### Transfer: repeat same key and payload to observe replayed:true
+POST {{base}}/api/transfers
+Authorization: Bearer {{token}}
+Idempotency-Key: alice-transfer-0001
+Content-Type: application/json
+
+{"fromAccountId":"{{sourceId}}","toAccountId":"{{destinationId}}","amount":15.25,"currency":"USD"}
+
+### Verify ledger vs balance
+GET {{base}}/api/accounts/{{sourceId}}/audit
+Authorization: Bearer {{token}}
+
+### View immutable transaction history (read-only API)
+GET {{base}}/api/accounts/{{sourceId}}/ledger?limit=50
+Authorization: Bearer {{token}}
