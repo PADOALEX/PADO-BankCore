@@ -162,11 +162,6 @@ static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(JwtRe
 static string Key(HttpContext ctx) => ctx.Request.Headers["Idempotency-Key"].ToString();
 static object ToAccount(BankAccount a) => new { a.Id, a.OwnerId, a.Type, a.Currency, a.Balance, a.SavingsWithdrawals, a.CreatedAtUtc };
 
-public sealed record RegisterRequest(string Username, string Password);
-public sealed record LoginRequest(string Username, string Password);
-public sealed record CreateAccountRequest(string Type);
-public sealed record AmountRequest(decimal Amount, string Currency);
-public sealed record TransferRequest(Guid FromAccountId, Guid ToAccountId, decimal Amount, string Currency);
 
 static async Task SeedDemoAsync(BankDbContext db, IPasswordHasher<BankUser> hasher, string password)
 {
@@ -187,3 +182,9 @@ static async Task SeedDemoAsync(BankDbContext db, IPasswordHasher<BankUser> hash
             account.Id, null, opening, "USD", $"demo-opening-{name}"));
     }
 }
+
+public sealed record RegisterRequest(string Username, string Password);
+public sealed record LoginRequest(string Username, string Password);
+public sealed record CreateAccountRequest(string Type);
+public sealed record AmountRequest(decimal Amount, string Currency);
+public sealed record TransferRequest(Guid FromAccountId, Guid ToAccountId, decimal Amount, string Currency);
