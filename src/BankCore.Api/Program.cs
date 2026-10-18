@@ -118,11 +118,15 @@ api.MapPost("/accounts", async (CreateAccountRequest request, ClaimsPrincipal us
     return Results.Created($"/api/accounts/{account.Id}", ToAccount(account));
 });
 api.MapGet("/accounts", async (ClaimsPrincipal user, BankDbContext db, CancellationToken ct) =>
-    Results.Ok((await db.Accounts.AsNoTracking().Where(x => x.OwnerId == UserId(user)).OrderBy(x => x.CreatedAtUtc)
-        .ToListAsync(ct)).Select(ToAccount)));
+{
+    var ownerId = UserId(user);
+    return Results.Ok((await db.Accounts.AsNoTracking().Where(x => x.OwnerId == ownerId).OrderBy(x => x.CreatedAtUtc)
+        .ToListAsync(ct)).Select(ToAccount));
+});
 api.MapGet("/accounts/{id:guid}", async (Guid id, ClaimsPrincipal user, BankDbContext db, CancellationToken ct) =>
 {
-    var account = await db.Accounts.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.OwnerId == UserId(user), ct);
+    var ownerId = UserId(user);
+    var account = await db.Accounts.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, ct);
     return account is null ? Results.NotFound() : Results.Ok(ToAccount(account));
 });
 api.MapPost("/accounts/{id:guid}/deposits", async (Guid id, AmountRequest req, HttpContext http, ClaimsPrincipal user, PostingService service, CancellationToken ct) =>
@@ -135,7 +139,8 @@ api.MapGet("/accounts/{id:guid}/audit", async (Guid id, ClaimsPrincipal user, Le
     Results.Ok(await audit.VerifyAccountAsync(UserId(user), id, ct)));
 api.MapGet("/accounts/{id:guid}/ledger", async (Guid id, int? limit, ClaimsPrincipal user, BankDbContext db, CancellationToken ct) =>
 {
-    if (!await db.Accounts.AnyAsync(x => x.Id == id && x.OwnerId == UserId(user), ct))
+    var ownerId = UserId(user);
+    if (!await db.Accounts.AnyAsync(x => x.Id == id && x.OwnerId == ownerId, ct))
         return Results.NotFound();
     var pageSize = Math.Clamp(limit ?? 50, 1, 100);
     var entries = await db.LedgerEntries.AsNoTracking().Where(x => x.AccountId == id)
@@ -146,7 +151,8 @@ api.MapGet("/accounts/{id:guid}/ledger", async (Guid id, int? limit, ClaimsPrinc
 });
 api.MapGet("/operations/{id:guid}", async (Guid id, ClaimsPrincipal user, BankDbContext db, CancellationToken ct) =>
 {
-    var op = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.InitiatorId == UserId(user), ct);
+    var ownerId = UserId(user);
+    var op = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.InitiatorId == ownerId, ct);
     if (op is null) return Results.NotFound();
     var entryCount = await db.LedgerEntries.CountAsync(x => x.OperationId == id, ct);
     return Results.Ok(new
