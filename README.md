@@ -26,6 +26,7 @@ The original `BankSystem.zip` was a C# console app with clients, checking/saving
 - **Cross-process concurrency:** PostgreSQL `SELECT … FOR UPDATE` row locks acquired in deterministic account-ID order under `READ COMMITTED`.
 - **Idempotency:** `(InitiatorId, IdempotencyKey)` unique database index; replays return the original operation ID; conflicting payloads yield HTTP 409.
 - **Auditable journal:** one positive/negative signed entry for simulator deposits/withdrawals, exactly two balancing entries for transfers, plus balance-after snapshots.
+- **Consistent reconciliation:** ledger auditing uses one PostgreSQL repeatable-read snapshot while concurrent postings continue on other connections.
 - **JWT authentication:** password hashing with ASP.NET Core Identity PasswordHasher, owner-scoped account reads and posting permissions.
 - **No hidden rounding:** decimal values mapped to `numeric(19,2)`; only `USD`, no FX, max transaction USD 1,000,000.
 - **Developer tools:** .NET unit tests, PostgreSQL integration tests, Docker Compose, OpenAPI JSON, GitHub Actions and `.http` examples.
@@ -141,7 +142,7 @@ export BANKCORE_TEST_CONNECTION='Host=localhost;Port=5432;Database=bankcore_test
 dotnet test tests/BankCore.IntegrationTests -c Release --no-build
 ```
 
-These tests exercise actual row locks, rollback after SQL writes, insufficient funds, competing transfers and repeated idempotency keys. They **cannot be replaced by an EF InMemory provider** if the goal is to validate database locking.
+These tests exercise actual row locks, rollback after SQL writes, insufficient funds, competing transfers, opposite-direction transfers, repeated idempotency keys and auditing during a concurrent posting. HTTP authentication tests also cover null credentials and culture-independent username normalization. They **cannot be replaced by an EF InMemory provider** if the goal is to validate database locking.
 
 ## Scope and limitations
 
