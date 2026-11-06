@@ -1,3 +1,4 @@
+using System.Data;
 using BankCore.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,7 @@ public sealed class LedgerAuditService(BankDbContext db)
 {
     public async Task<LedgerAuditReport> VerifyAccountAsync(Guid ownerId, Guid accountId, CancellationToken ct = default)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
         var account = await db.Accounts.AsNoTracking().SingleOrDefaultAsync(x => x.Id == accountId && x.OwnerId == ownerId, ct)
             ?? throw new BankingException("account_not_found", "Account not found.");
         var ledger = db.LedgerEntries.AsNoTracking().Where(x => x.AccountId == accountId);
@@ -24,6 +26,7 @@ public sealed class LedgerAuditService(BankDbContext db)
             .Select(g => new { Id = g.Key, Count = g.Count(), SignedTotal = g.Sum(x => x.SignedAmount) })
             .ToListAsync(ct);
         var broken = ids.Count - transferLegs.Count + transferLegs.Count(x => x.Count != 2 || x.SignedTotal != 0m);
+        await transaction.CommitAsync(ct);
         return new LedgerAuditReport(accountId, account.Balance, total, account.Balance == total, count, broken);
     }
 }

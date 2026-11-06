@@ -36,6 +36,7 @@ C# `lock` only synchronizes threads that share one in-process object. Separate A
 - Replays produce no additional writes.
 - For accounts opened at zero with all changes made through `PostingService`, `Balance == SUM(SignedAmount)`.
 - `GET /api/accounts/{id}/audit` reports reconciliation and checks that each transfer touching the account has two opposite-signed entries. This is a diagnostic check, **not** a cryptographically tamper-proof ledger.
+- Audit queries share one `REPEATABLE READ` transaction. A posting committed between the account read and ledger read becomes visible to the next audit, preventing a false mismatch between different database snapshots.
 
 ### Error semantics and ambiguous failures
 

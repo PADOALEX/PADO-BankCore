@@ -97,7 +97,11 @@ auth.MapPost("/register", async (RegisterRequest request, BankDbContext db, IPas
 }).AllowAnonymous();
 auth.MapPost("/login", async (LoginRequest request, BankDbContext db, IPasswordHasher<BankUser> hasher, CancellationToken ct) =>
 {
-    var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.NormalizedUsername == request.Username.ToUpper(), ct);
+    if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length > 60 ||
+        string.IsNullOrEmpty(request.Password) || request.Password.Length > 128)
+        return Results.Unauthorized();
+    var normalizedUsername = request.Username.Trim().ToUpperInvariant();
+    var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.NormalizedUsername == normalizedUsername, ct);
     if (user is null || hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
         return Results.Unauthorized();
     var expires = DateTime.UtcNow.AddHours(1);
@@ -194,3 +198,4 @@ public sealed record LoginRequest(string Username, string Password);
 public sealed record CreateAccountRequest(string Type);
 public sealed record AmountRequest(decimal Amount, string Currency);
 public sealed record TransferRequest(Guid FromAccountId, Guid ToAccountId, decimal Amount, string Currency);
+public partial class Program { }
